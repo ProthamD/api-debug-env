@@ -83,7 +83,7 @@ async def run_task(env, task_id):
             method=str(fixed.get("method", "GET")),
             url=str(fixed.get("url", obs.broken_request.get("url", "/mock_api/users"))),
             headers=dict(fixed.get("headers") or {}),
-            body=fixed.get("body"),
+            body=fixed.get("body") or {},
             query_params=dict(fixed.get("query_params") or {}),
         )
 

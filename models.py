@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 try:
     from openenv.core.env_server.types import Action, Observation, State
 except ImportError:
@@ -7,14 +9,13 @@ except ImportError:
         from openenv.core.env_server import Action, Observation, State
 
 from pydantic import Field
-from typing import Any
 
 
 class APIAction(Action):
     method: str = Field(default="GET")
     url: str = Field(default="/mock_api/users")
     headers: dict = Field(default_factory=dict)
-    body: Any = Field(default=None)
+    body: dict = Field(default_factory=dict)
     query_params: dict = Field(default_factory=dict)
 
 
