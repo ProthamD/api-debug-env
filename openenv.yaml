@@ -1,0 +1,42 @@
+spec_version: 1
+name: api-debug-env
+version: "1.0.0"
+type: environment
+runtime: docker
+app: server/app.py
+port: 8000
+description: OpenEnv environment where AI agents debug broken HTTP API requests by reading real error responses and iteratively fixing headers, methods, bodies, and auth flows.
+tasks:
+  - id: easy
+    name: Auth and Header Errors
+    difficulty: easy
+    max_steps: 5
+    reward_range: [0.0, 1.0]
+  - id: medium
+    name: Method and Body Errors
+    difficulty: medium
+    max_steps: 5
+    reward_range: [0.0, 1.0]
+  - id: hard
+    name: Rate Limiting and Multi-step Auth
+    difficulty: hard
+    max_steps: 5
+    reward_range: [0.0, 1.0]
+action_space:
+  type: structured
+  fields:
+    - method: string
+    - url: string
+    - headers: dict
+    - body: dict
+    - query_params: dict
+observation_space:
+  type: structured
+  fields:
+    - task_id: string
+    - task_description: string
+    - broken_request: dict
+    - last_status_code: int
+    - last_response_body: string
+    - step_feedback: string
+    - current_score: float

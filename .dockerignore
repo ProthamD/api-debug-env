@@ -1,0 +1,9 @@
+.git
+.env
+__pycache__
+*.pyc
+*.pyo
+outputs/
+.venv
+uv.lock
+*.egg-info
