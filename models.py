@@ -1,17 +1,20 @@
-from openenv.core.env_server import Environment
 try:
     from openenv.core.env_server.types import Action, Observation, State
 except ImportError:
-    from openenv.core.models import Action, Observation, State
+    try:
+        from openenv.core.models import Action, Observation, State
+    except ImportError:
+        from openenv.core.env_server import Action, Observation, State
+
 from pydantic import Field
-from typing import Optional
+from typing import Any
 
 
 class APIAction(Action):
     method: str = Field(default="GET")
     url: str = Field(default="/mock_api/users")
     headers: dict = Field(default_factory=dict)
-    body: Optional[dict] = Field(default=None)
+    body: Any = Field(default=None)
     query_params: dict = Field(default_factory=dict)
 
 
