@@ -1,1 +1,0 @@
-{"action": {"method":"GET","url":"/mock_api/users","headers":{"Authorization":"Bearer demo_token_123"},"body":null,"query_params":{}}}

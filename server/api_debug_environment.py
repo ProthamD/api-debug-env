@@ -11,7 +11,7 @@ from tasks.registry import TASK_REGISTRY
 from graders.grader import APIGrader
 
 GRADER = APIGrader()
-MOCK_BASE = "http://localhost:8000"
+MOCK_BASE = "http://localhost:7860"
 
 
 class APIDebugEnvironment(Environment):
