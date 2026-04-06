@@ -14,6 +14,12 @@ LOG_PAGES = {
     "cur_def": {"items": list(range(20, 25)), "next_cursor": None, "has_more": False},
 }
 
+@router.post("/_admin/reset")
+async def admin_reset():
+    _issued_tokens.clear()
+    _request_log.clear()
+    return {"status": "reset_successful"}
+
 
 class TokenRequest(BaseModel):
     client_id: str

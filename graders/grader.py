@@ -28,13 +28,13 @@ class APIGrader:
         if status == expected_status:
             return "Correct status code. Verify response schema matches expected."
         hints = {
-            401: "Authentication failed. Check Authorization header format and token value.",
-            403: "Forbidden. Token valid but lacks permission.",
-            404: "Endpoint not found. Check the URL path.",
-            405: "Wrong HTTP method. Check if endpoint needs GET POST PUT or DELETE.",
-            415: "Wrong Content-Type. Send application/json.",
-            422: "Body validation failed. Check field names types and required fields.",
-            429: "Rate limited. Add header X-Retry-After: 2 on next request.",
-            500: "Server error. Your payload caused an exception.",
+            401: "Authentication failed. The server could not verify your identity. Check your tokens or auth headers in the response.",
+            403: "Forbidden. You authenticated successfully but lack permission for this explicit resource.",
+            404: "Endpoint not found. Double-check the URL path and HTTP method.",
+            405: "Method Not Allowed. The HTTP method used is not supported by this endpoint.",
+            415: "Unsupported Media Type. The server expects a different Content-Type.",
+            422: "Unprocessable Entity. The request body or query parameters failed validation. Check property names and data types.",
+            429: "Too Many Requests. You have been rate limited. Look for a retry header.",
+            500: "Internal Server Error. Your payload caused an unhandled exception.",
         }
-        return hints.get(status, f"Got {status} expected {expected_status}. Re-read task description carefully.")
+        return hints.get(status, f"Received status {status}. Read the response body/headers for clues and retry.")
