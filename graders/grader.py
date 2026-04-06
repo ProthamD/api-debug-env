@@ -9,13 +9,22 @@ class APIGrader:
         try:
             body = json.loads(response_body)
         except Exception:
-            return 0.1
+            return 0.25
         schema_score = self._schema_match(body, expected_schema)
+        # Ensure correct status always scores higher than any error status
+        base_score = max(0.25, schema_score)
         attempt_bonus = max(0.0, 1.0 - (attempt / max_steps) * 0.15)
-        return round(min(1.0, max(0.0, schema_score * attempt_bonus)), 4)
+        return round(min(1.0, max(0.0, base_score * attempt_bonus)), 4)
 
     def _partial(self, status):
-        mapping = {0: 0.0, 401: 0.05, 403: 0.05, 404: 0.05, 405: 0.10, 415: 0.10, 422: 0.15, 429: 0.20, 200: 0.70}
+        mapping = {
+            0: 0.0,
+            401: 0.05, 403: 0.05, 404: 0.05,
+            405: 0.10, 415: 0.10,
+            422: 0.15,
+            429: 0.20,
+            200: 0.70,
+        }
         return mapping.get(status, 0.05)
 
     def _schema_match(self, body, schema):

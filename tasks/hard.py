@@ -1,7 +1,13 @@
 HARD_TASKS = [
     {
         "id": "hard_token_exchange",
-        "description": "Access the protected resource at GET /mock_api/protected. You might need to authenticate first to get a valid token. Valid credentials are client_id 'abc' and client_secret 'xyz' at /mock_api/auth/token.",
+        "description": (
+            "The protected endpoint needs a fresh token. "
+            "Step 1: POST to /mock_api/auth/token with JSON body {\"client_id\": \"abc\", \"client_secret\": \"xyz\"} "
+            "to get an access_token from the response. "
+            "Step 2: Use that token as Authorization: Bearer <token> to GET /mock_api/protected. "
+            "The token in the broken request is expired and will return 401."
+        ),
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/protected",
@@ -11,10 +17,15 @@ HARD_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"data": ""},
+        "max_steps": 10,
     },
     {
         "id": "hard_rate_limit",
-        "description": "Retrieve data from /mock_api/rate_limited. The server has strict rate limits. Continuously attempt to fetch until you get a successful 200 OK.",
+        "description": (
+            "The rate_limited endpoint returns 429 after 3 requests without the X-Retry-After header. "
+            "When you receive a 429, add the header X-Retry-After: 2 to your next request. "
+            "The response body on 429 contains Retry-After hint in headers."
+        ),
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/rate_limited",
@@ -24,10 +35,16 @@ HARD_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"data": ""},
+        "max_steps": 10,
     },
     {
         "id": "hard_pagination",
-        "description": "Fetch all logs from GET /mock_api/logs to get a 200 OK without more pages. The endpoint returns a cursor. Follow the cursor chain until has_more is false.",
+        "description": (
+            "GET /mock_api/logs returns the first page with next_cursor and has_more fields. "
+            "Pass cursor=<next_cursor> as a query param to get the next page. "
+            "Keep following the cursor chain until has_more is false. "
+            "The final page has has_more=false and no next_cursor."
+        ),
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/logs",
@@ -37,5 +54,6 @@ HARD_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"items": [], "has_more": False},
+        "max_steps": 10,
     },
 ]

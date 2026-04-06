@@ -11,6 +11,7 @@ EXPERT_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"status": "", "cpu": 0.0, "mem": 0.0},
+        "max_steps": 10,
     },
     {
         "id": "expert_stateful_chain",
@@ -24,5 +25,6 @@ EXPERT_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"status": "", "item_id": ""},
+        "max_steps": 10,
     },
 ]

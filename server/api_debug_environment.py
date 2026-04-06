@@ -21,21 +21,15 @@ class APIDebugEnvironment(Environment):
         self._current_task = None
 
     def reset(self, task_id: str = "easy", **kwargs) -> APIObservation:
-        # Reset the mock API state to ensure strict episode isolation
-        try:
-            with httpx.Client(base_url=MOCK_BASE, timeout=2.0) as http:
-                http.post("/mock_api/_admin/reset")
-        except Exception:
-            pass
-
         if task_id not in TASK_REGISTRY:
             task_id = "easy"
         self._current_task = random.choice(TASK_REGISTRY[task_id])
+        max_steps = self._current_task.get("max_steps", 5)
         self._state = APIState(
             episode_id=f"ep_{random.randint(10000, 99999)}",
             step_count=0,
             task_id=task_id,
-            max_steps=10,
+            max_steps=max_steps,
             solved=False,
         )
         return APIObservation(
