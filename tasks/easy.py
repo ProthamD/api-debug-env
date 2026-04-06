@@ -23,7 +23,7 @@ EASY_TASKS = [
             "query_params": {},
         },
         "expected_status": 200,
-        "expected_schema": {"item_id": 0, "name": "", "created": True},
+        "expected_schema": {"item_id": "", "name": "", "created": True},
     },
     {
         "id": "easy_query_param",

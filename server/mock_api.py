@@ -1,4 +1,5 @@
 import time
+import uuid
 from fastapi import APIRouter, Header, HTTPException, Request, Query
 from pydantic import BaseModel
 from typing import Optional
@@ -7,6 +8,7 @@ router = APIRouter(prefix="/mock_api", tags=["mock"])
 
 _issued_tokens = set()
 _request_log = {}
+_items_db = {}
 
 LOG_PAGES = {
     None: {"items": list(range(10)), "next_cursor": "cur_abc", "has_more": True},
@@ -18,6 +20,7 @@ LOG_PAGES = {
 async def admin_reset():
     _issued_tokens.clear()
     _request_log.clear()
+    _items_db.clear()
     return {"status": "reset_successful"}
 
 
@@ -52,7 +55,16 @@ async def create_item(request: Request):
     body = await request.json()
     if "name" not in body:
         raise HTTPException(status_code=422, detail=[{"loc": ["body", "name"], "msg": "field required"}])
-    return {"item_id": 42, "name": body["name"], "created": True}
+    item_id = str(uuid.uuid4())
+    _items_db[item_id] = body["name"]
+    return {"item_id": item_id, "name": body["name"], "created": True}
+
+@router.delete("/items/{item_id}")
+async def delete_item(item_id: str):
+    if item_id not in _items_db:
+        raise HTTPException(status_code=404, detail="Item not found")
+    del _items_db[item_id]
+    return {"status": "deleted", "item_id": item_id}
 
 
 @router.get("/search")
@@ -119,3 +131,11 @@ async def get_logs(cursor: Optional[str] = Query(default=None)):
     if cursor not in LOG_PAGES:
         raise HTTPException(status_code=400, detail=f"Invalid cursor: {cursor}")
     return LOG_PAGES[cursor]
+
+class MetricsBody(BaseModel):
+    cpu_load: float
+    memory_usage: float
+
+@router.post("/system/metrics", description="Ingest system metrics. Required JSON fields: cpu_load (float), memory_usage (float).")
+async def ingest_metrics(metrics: MetricsBody):
+    return {"status": "metrics_logged", "cpu": metrics.cpu_load, "mem": metrics.memory_usage}

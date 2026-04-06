@@ -138,7 +138,7 @@ async def run_task(env, task_id):
 
 async def main():
     async with APIDebugEnv(base_url=ENV_URL) as env:
-        for task_id in ["easy", "medium", "hard"]:
+        for task_id in ["easy", "medium", "hard", "expert"]:
             await run_task(env, task_id)
 
 
