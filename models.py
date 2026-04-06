@@ -35,5 +35,5 @@ class APIObservation(Observation):
 
 class APIState(State):
     task_id: str = Field(default="easy")
-    max_steps: int = Field(default=5)
+    max_steps: int = Field(default=10)
     solved: bool = Field(default=False)

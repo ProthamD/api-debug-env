@@ -1,7 +1,7 @@
 EASY_TASKS = [
     {
         "id": "easy_auth",
-        "description": "The request is missing an Authorization header. The API requires: Authorization: Bearer demo_token_123. Fix the request to GET /mock_api/users successfully.",
+        "description": "Access the protected resource at GET /mock_api/users to get a 200 OK. The current request is failing.",
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/users",
@@ -14,7 +14,7 @@ EASY_TASKS = [
     },
     {
         "id": "easy_content_type",
-        "description": "The request uses Content-Type: text/plain but the API requires application/json. Fix the header and send body with a name field to POST /mock_api/items.",
+        "description": "Create an item with name 'test_item' via POST /mock_api/items to get a 200 OK. The current request payload is rejected by the server.",
         "broken_request": {
             "method": "POST",
             "url": "/mock_api/items",
@@ -27,7 +27,7 @@ EASY_TASKS = [
     },
     {
         "id": "easy_query_param",
-        "description": "The search endpoint requires a query parameter q. The request omits it. Add q=python to the query params for GET /mock_api/search.",
+        "description": "Search for 'python' via GET /mock_api/search. The current request is missing required parameters.",
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/search",

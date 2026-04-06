@@ -37,10 +37,10 @@ async def get_token(body: TokenRequest):
 @router.get("/users")
 async def get_users(authorization: Optional[str] = Header(default=None)):
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authorization header missing or malformed")
+        raise HTTPException(status_code=401, detail="Authorization header missing or malformed. Expected format: Bearer <token>. Use 'demo_token_123' for testing.")
     token = authorization.split(" ")[1]
     if token not in _issued_tokens and token != "demo_token_123":
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid token. Try 'demo_token_123'.")
     return {"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}
 
 
@@ -104,7 +104,11 @@ async def rate_limited(request: Request, x_retry_after: Optional[str] = Header(d
     window = [t for t in _request_log.get(client_id, []) if now - t < 5]
     if len(window) >= 3 and not x_retry_after:
         _request_log[client_id] = window
-        raise HTTPException(status_code=429, detail="Rate limit exceeded", headers={"Retry-After": "2"})
+        raise HTTPException(
+            status_code=429, 
+            detail={"error": "Rate limit exceeded", "hint": "Please add X-Retry-After header with value 2 to override."},
+            headers={"Retry-After": "2"}
+        )
     window.append(now)
     _request_log[client_id] = window
     return {"data": "rate_limited_resource", "requests_in_window": len(window)}

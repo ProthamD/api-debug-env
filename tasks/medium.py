@@ -1,7 +1,7 @@
 MEDIUM_TASKS = [
     {
         "id": "medium_wrong_method",
-        "description": "Creating an order requires POST not GET. Fix the HTTP method and send body with product_id 5 and qty 2 to /mock_api/orders.",
+        "description": "Create an order for product_id 5 with qty 2 at /mock_api/orders. The given request is failing.",
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/orders",
@@ -14,7 +14,7 @@ MEDIUM_TASKS = [
     },
     {
         "id": "medium_type_mismatch",
-        "description": "The API expects product_id as an integer but the request sends the string five. Fix the type to the integer 5 in the body.",
+        "description": "Submit a new order for product_id 5 and qty 2 at /mock_api/orders. The API is returning a validation error for the current payload.",
         "broken_request": {
             "method": "POST",
             "url": "/mock_api/orders",
@@ -27,7 +27,7 @@ MEDIUM_TASKS = [
     },
     {
         "id": "medium_nested_field",
-        "description": "The profile endpoint expects address to be a dict like street and city keys, not a plain string. Fix the body structure.",
+        "description": "Update the profile with name 'Alice' and address containing street '123 Main St' and city 'Metropolis'. The current payload structure is rejected.",
         "broken_request": {
             "method": "POST",
             "url": "/mock_api/profile",

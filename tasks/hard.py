@@ -1,7 +1,7 @@
 HARD_TASKS = [
     {
         "id": "hard_token_exchange",
-        "description": "The protected endpoint needs a fresh token. First POST to /mock_api/auth/token with body client_id abc and client_secret xyz to get an access_token. Then use it as Authorization: Bearer <token> to GET /mock_api/protected. The token in the broken request is expired.",
+        "description": "Access the protected resource at GET /mock_api/protected. You might need to authenticate first to get a valid token. Valid credentials are client_id 'abc' and client_secret 'xyz' at /mock_api/auth/token.",
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/protected",
@@ -14,7 +14,7 @@ HARD_TASKS = [
     },
     {
         "id": "hard_rate_limit",
-        "description": "The rate_limited endpoint returns 429 if you send more than 3 requests without the X-Retry-After header. After receiving a 429 include header X-Retry-After with value 2.",
+        "description": "Retrieve data from /mock_api/rate_limited. The server has strict rate limits. Continuously attempt to fetch until you get a successful 200 OK.",
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/rate_limited",
@@ -27,7 +27,7 @@ HARD_TASKS = [
     },
     {
         "id": "hard_pagination",
-        "description": "GET /mock_api/logs returns only the first page with a next_cursor field. Follow the cursor chain by passing cursor as a query param until has_more is false.",
+        "description": "Fetch all logs from GET /mock_api/logs to get a 200 OK without more pages. The endpoint returns a cursor. Follow the cursor chain until has_more is false.",
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/logs",

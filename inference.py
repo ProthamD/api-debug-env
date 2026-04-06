@@ -11,7 +11,7 @@ MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.3")
 HF_TOKEN = os.getenv("HF_TOKEN")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:7860")
 BENCHMARK = "api_debug_env"
-MAX_STEPS = 5
+MAX_STEPS = 10
 SUCCESS_SCORE_THRESHOLD = 0.8
 
 llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)

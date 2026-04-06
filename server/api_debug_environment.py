@@ -35,7 +35,7 @@ class APIDebugEnvironment(Environment):
             episode_id=f"ep_{random.randint(10000, 99999)}",
             step_count=0,
             task_id=task_id,
-            max_steps=5,
+            max_steps=10,
             solved=False,
         )
         return APIObservation(
