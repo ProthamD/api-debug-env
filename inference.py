@@ -6,15 +6,15 @@ from openai import OpenAI
 from client import APIDebugEnv
 from models import APIAction
 
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
-MODEL_NAME = os.getenv("MODEL_NAME") or "mistralai/Mistral-7B-Instruct-v0.3"
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.3")
+HF_TOKEN = os.getenv("HF_TOKEN")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:7860")
 BENCHMARK = "api_debug_env"
 MAX_STEPS = 5
 SUCCESS_SCORE_THRESHOLD = 0.8
 
-llm = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
 SYSTEM_PROMPT = """You are an HTTP API debugger. You receive a broken request and must fix it to get HTTP 200.
 Respond ONLY in valid JSON with exactly these fields:
