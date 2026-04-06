@@ -1,16 +1,20 @@
 import os
 import json
 import asyncio
+from typing import List, Optional
 from openai import OpenAI
 from client import APIDebugEnv
 from models import APIAction
 
-API_BASE_URL = os.environ["API_BASE_URL"]
-MODEL_NAME = os.environ["MODEL_NAME"]
-HF_TOKEN = os.environ["HF_TOKEN"]
-ENV_URL = os.environ.get("ENV_URL", "http://localhost:8000")
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME = os.getenv("MODEL_NAME") or "mistralai/Mistral-7B-Instruct-v0.3"
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+ENV_URL = os.getenv("ENV_URL", "http://localhost:7860")
+BENCHMARK = "api_debug_env"
+MAX_STEPS = 5
+SUCCESS_SCORE_THRESHOLD = 0.8
 
-llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+llm = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
 SYSTEM_PROMPT = """You are an HTTP API debugger. You receive a broken request and must fix it to get HTTP 200.
 Respond ONLY in valid JSON with exactly these fields:
@@ -27,6 +31,24 @@ Rules:
 - body must be null for GET requests
 - always include Content-Type: application/json when body is not null
 - do not add any text outside the JSON"""
+
+
+def log_start(task: str, env: str, model: str) -> None:
+    print(f"[START] task={task} env={env} model={model}", flush=True)
+
+
+def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+    print(
+        f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True,
+    )
+
+
+def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 
 def call_llm(task_description, broken_request, last_status, last_body, feedback):
@@ -56,82 +78,68 @@ def call_llm(task_description, broken_request, last_status, last_body, feedback)
 
 
 async def run_task(env, task_id):
-    obs = await env.reset(task_id=task_id)
-    state = await env.state()
+    rewards: List[float] = []
+    steps_taken = 0
+    score = 0.0
+    success = False
 
-    print(json.dumps({
-        "type": "[START]",
-        "task_id": task_id,
-        "episode_id": state.episode_id,
-        "task_description": obs.task_description,
-        "broken_request": obs.broken_request,
-    }))
+    log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
 
-    final_reward = 0.0
-    step_num = 0
-
-    for step_num in range(state.max_steps):
-        fixed = call_llm(
-            obs.task_description,
-            obs.broken_request,
-            obs.last_status_code,
-            obs.last_response_body,
-            obs.step_feedback,
-        )
-
-        action = APIAction(
-            method=str(fixed.get("method", "GET")),
-            url=str(fixed.get("url", obs.broken_request.get("url", "/mock_api/users"))),
-            headers=dict(fixed.get("headers") or {}),
-            body=fixed.get("body") or {},
-            query_params=dict(fixed.get("query_params") or {}),
-        )
-
-        result = await env.step(action)
-        final_reward = result.reward
+    try:
+        result = await env.reset(task_id=task_id)
         obs = result.observation
+        state = await env.state()
 
-        print(json.dumps({
-            "type": "[STEP]",
-            "task_id": task_id,
-            "step": step_num + 1,
-            "action": {
-                "method": action.method,
-                "url": action.url,
-                "headers": action.headers,
-                "body": action.body,
-                "query_params": action.query_params,
-            },
-            "status_code": obs.last_status_code,
-            "reward": result.reward,
-            "done": result.done,
-            "feedback": obs.step_feedback,
-        }))
+        for step in range(1, state.max_steps + 1):
+            if result.done:
+                break
 
-        if result.done:
-            break
+            fixed = call_llm(
+                obs.task_description,
+                obs.broken_request,
+                obs.last_status_code,
+                obs.last_response_body,
+                obs.step_feedback,
+            )
 
-    print(json.dumps({
-        "type": "[END]",
-        "task_id": task_id,
-        "final_reward": final_reward,
-        "steps_taken": step_num + 1,
-    }))
+            action = APIAction(
+                method=str(fixed.get("method", "GET")),
+                url=str(fixed.get("url", obs.broken_request.get("url", "/mock_api/users"))),
+                headers=dict(fixed.get("headers") or {}),
+                body=fixed.get("body") or {},
+                query_params=dict(fixed.get("query_params") or {}),
+            )
 
-    return final_reward
+            action_str = f"{action.method}:{action.url}"
+            result = await env.step(action)
+            reward = result.reward or 0.0
+            done = result.done
+            obs = result.observation
+
+            rewards.append(reward)
+            steps_taken = step
+
+            log_step(step=step, action=action_str, reward=reward, done=done, error=None)
+
+            if done:
+                break
+
+        score = max(rewards) if rewards else 0.0
+        success = score >= SUCCESS_SCORE_THRESHOLD
+
+    except Exception as e:
+        print(f"[DEBUG] Task {task_id} error: {e}", flush=True)
+
+    finally:
+        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+
+    return score
 
 
 async def main():
     async with APIDebugEnv(base_url=ENV_URL) as env:
-        scores = {}
         for task_id in ["easy", "medium", "hard"]:
-            scores[task_id] = await run_task(env, task_id)
-
-        print(json.dumps({
-            "type": "[SUMMARY]",
-            "scores": scores,
-            "average": round(sum(scores.values()) / len(scores), 4),
-        }))
+            await run_task(env, task_id)
 
 
 if __name__ == "__main__":
