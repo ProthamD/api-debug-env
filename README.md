@@ -28,11 +28,12 @@ Every step produces a real HTTP call. The grader is fully deterministic: no LLM,
 | Property | Value |
 |---|---|
 | **Framework** | OpenEnv (openenv-core 0.2.3) |
-| **Tasks** | 3 difficulty levels — 9 tasks total |
-| **Max Steps per Episode** | 5 |
+| **Tasks** | 4 difficulty levels — 12 tasks total |
+| **Max Steps per Episode** | Dynamic (5 for Easy/Medium, 10 for Hard/Expert) |
 | **Reward Range** | 0.0 – 1.0 |
-| **Grader** | Fully deterministic (no LLM) |
+| **Grader** | Fully deterministic (no LLM), robust to negative reward hacking |
 | **Mock API** | Internal FastAPI router, same container |
+| **State Reset** | Secure `/_admin/reset` endpoint guarantees strict episode isolation |
 | **Port** | 7860 (HF Spaces) |
 
 ---
@@ -103,6 +104,16 @@ Requires multi-step reasoning and handling stateful API behaviour.
 | `hard_rate_limit` | No backoff after 429 | After receiving 429, include `X-Retry-After: 2` header on next request |
 | `hard_pagination` | Never follows cursor | Call GET `/mock_api/logs?cursor=<value>` until `has_more` is `false` |
 
+### Expert — Sandbox & Undocumented APIs
+
+Advanced RL environment forcing pure systematic exploration and state tracking.
+
+| Task ID | Bug | What the Agent Needs to Fix |
+|---|---|---|
+| `expert_openapi_discovery` | Completely undocumented endpoint | Query `/mock_api/system/metrics` utilizing OPTIONS/Swagger to find correct schema |
+| `expert_stateful_chain` | UUIDs change every run | Create a user, extract the generated `user_id`, and immediately update their preferences |
+| `expert_transaction_rollback` | Multi-step transaction | Begin a transaction, fail it intentionally, and issue a rollback command cleanly |
+
 ---
 
 ## Reward Function
@@ -121,7 +132,7 @@ Agents are rewarded more for solving tasks in fewer steps. Partial credit is giv
 | 405 / 415 | 0.10 | Auth ok, wrong method or content-type |
 | 422 | 0.15 | Auth ok, body validation failed |
 | 429 | 0.20 | Hit endpoint, needs rate limit handling |
-| 200 (schema mismatch) | 0.70 | Right status, wrong response structure |
+| 200 (schema mismatch) | 0.25 | Right status, wrong response structure |
 | 200 (schema match) | 0.85–1.00 | Correct — higher reward for fewer attempts |
 
 ---
@@ -234,7 +245,8 @@ api_debug_env/
 ├── tasks/
 │   ├── easy.py               ← 3 easy tasks
 │   ├── medium.py             ← 3 medium tasks
-│   ├── hard.py               ← 3 hard tasks
+│   ├── hard.py               ← 3 hard/multi-step tasks
+│   ├── expert.py             ← 3 expert advanced RL tasks
 │   └── registry.py           ← TASK_REGISTRY dict
 ├── graders/
 │   └── grader.py             ← Deterministic reward logic
