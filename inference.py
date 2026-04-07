@@ -14,7 +14,7 @@ BENCHMARK = "api_debug_env"
 MAX_STEPS = 10
 SUCCESS_SCORE_THRESHOLD = 0.8
 
-llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN or "dummy-token")
 
 SYSTEM_PROMPT = """You are an HTTP API debugger. You receive a broken request and must fix it to get HTTP 200.
 Respond ONLY in valid JSON with exactly these fields:
@@ -60,20 +60,21 @@ def call_llm(task_description, broken_request, last_status, last_body, feedback)
         f"Feedback: {feedback}\n\n"
         f"Return the fixed request as JSON:"
     )
-    resp = llm.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_msg},
-        ],
-        max_tokens=300,
-        temperature=0.1,
-    )
-    raw = resp.choices[0].message.content.strip()
-    raw = raw.replace("```json", "").replace("```", "").strip()
     try:
+        resp = llm.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_msg},
+            ],
+            max_tokens=300,
+            temperature=0.1,
+        )
+        raw = resp.choices[0].message.content.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
         return json.loads(raw)
-    except json.JSONDecodeError:
+    except Exception as e:
+        print(f"[WARN] LLM Call failed: {e}", flush=True)
         return broken_request
 
 
