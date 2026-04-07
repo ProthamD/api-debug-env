@@ -4,7 +4,7 @@ version: "1.0.0"
 type: environment
 runtime: docker
 app: server/app.py
-port: 8000
+port: 7860
 description: OpenEnv environment where AI agents debug broken HTTP API requests by reading real error responses and iteratively fixing headers, methods, bodies, and auth flows.
 tasks:
   - id: easy
@@ -20,7 +20,12 @@ tasks:
   - id: hard
     name: Rate Limiting and Multi-step Auth
     difficulty: hard
-    max_steps: 5
+    max_steps: 10
+    reward_range: [0.0, 1.0]
+  - id: expert
+    name: Discovery and Stateful Chains
+    difficulty: expert
+    max_steps: 10
     reward_range: [0.0, 1.0]
 action_space:
   type: structured
@@ -37,6 +42,10 @@ observation_space:
     - task_description: string
     - broken_request: dict
     - last_status_code: int
+    - last_response_headers: dict
     - last_response_body: string
     - step_feedback: string
     - current_score: float
+    - reward: float
+    - done: bool
+    - attempt: int

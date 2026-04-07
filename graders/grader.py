@@ -11,19 +11,22 @@ class APIGrader:
         except Exception:
             return 0.25
         schema_score = self._schema_match(body, expected_schema)
-        # Ensure correct status always scores higher than any error status
+        # Correct status always scores at least 0.25; attempt bonus tapers reward slightly
         base_score = max(0.25, schema_score)
         attempt_bonus = max(0.0, 1.0 - (attempt / max_steps) * 0.15)
         return round(min(1.0, max(0.0, base_score * attempt_bonus)), 4)
 
     def _partial(self, status):
+        # Partial credit for wrong-status responses — signals progress toward the solution
         mapping = {
-            0: 0.0,
-            401: 0.05, 403: 0.05, 404: 0.05,
-            405: 0.10, 415: 0.10,
-            422: 0.15,
-            429: 0.20,
-            200: 0.70,
+            0:   0.0,   # connection error / no response
+            401: 0.05,  # reached auth wall
+            403: 0.05,  # reached permission wall
+            404: 0.05,  # wrong endpoint
+            405: 0.10,  # right endpoint, wrong method
+            415: 0.10,  # right endpoint, wrong Content-Type
+            422: 0.15,  # right endpoint+method, bad body schema
+            429: 0.20,  # correct request but rate limited
         }
         return mapping.get(status, 0.05)
 
