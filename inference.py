@@ -1,20 +1,19 @@
 import os
 import json
 import asyncio
+import httpx
 from typing import List, Optional
 from openai import OpenAI
-from client import APIDebugEnv
-from models import APIAction
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.3")
-HF_TOKEN = os.getenv("HF_TOKEN")
-ENV_URL = os.getenv("ENV_URL", "http://localhost:7860")
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME = os.getenv("MODEL_NAME") or "mistralai/Mistral-7B-Instruct-v0.3"
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY") or "dummy"
+ENV_URL = os.getenv("ENV_URL", "http://localhost:7860").rstrip("/")
 BENCHMARK = "api_debug_env"
-MAX_STEPS = 10
+MAX_STEPS = 5
 SUCCESS_SCORE_THRESHOLD = 0.8
 
-llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN or "dummy-token")
+llm = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
 SYSTEM_PROMPT = """You are an HTTP API debugger. You receive a broken request and must fix it to get HTTP 200.
 Respond ONLY in valid JSON with exactly these fields:
@@ -56,7 +55,7 @@ def call_llm(task_description, broken_request, last_status, last_body, feedback)
         f"Task: {task_description}\n\n"
         f"Broken request:\n{json.dumps(broken_request, indent=2)}\n\n"
         f"Last response status: {last_status}\n"
-        f"Last response body: {last_body[:300]}\n\n"
+        f"Last response body: {str(last_body)[:300]}\n\n"
         f"Feedback: {feedback}\n\n"
         f"Return the fixed request as JSON:"
     )
@@ -73,12 +72,29 @@ def call_llm(task_description, broken_request, last_status, last_body, feedback)
         raw = resp.choices[0].message.content.strip()
         raw = raw.replace("```json", "").replace("```", "").strip()
         return json.loads(raw)
-    except Exception as e:
-        print(f"[WARN] LLM Call failed: {e}", flush=True)
+    except Exception:
         return broken_request
 
 
-async def run_task(env, task_id):
+async def env_reset(client: httpx.AsyncClient, task_id: str) -> dict:
+    resp = await client.post("/reset", json={"task_id": task_id}, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+async def env_step(client: httpx.AsyncClient, action: dict) -> dict:
+    resp = await client.post("/step", json={"action": action}, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+async def env_state(client: httpx.AsyncClient) -> dict:
+    resp = await client.get("/state", timeout=10)
+    resp.raise_for_status()
+    return resp.json()
+
+
+async def run_task(client: httpx.AsyncClient, task_id: str) -> float:
     rewards: List[float] = []
     steps_taken = 0
     score = 0.0
@@ -87,35 +103,37 @@ async def run_task(env, task_id):
     log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
 
     try:
-        result = await env.reset(task_id=task_id)
-        obs = result.observation
-        state = await env.state()
+        obs = await env_reset(client, task_id)
+        state = await env_state(client)
+        max_steps = state.get("max_steps", MAX_STEPS)
+        done = obs.get("done", False)
 
-        for step in range(1, state.max_steps + 1):
-            if result.done:
+        for step in range(1, max_steps + 1):
+            if done:
                 break
 
             fixed = call_llm(
-                obs.task_description,
-                obs.broken_request,
-                obs.last_status_code,
-                obs.last_response_body,
-                obs.step_feedback,
+                obs.get("task_description", ""),
+                obs.get("broken_request", {}),
+                obs.get("last_status_code", 0),
+                obs.get("last_response_body", ""),
+                obs.get("step_feedback", ""),
             )
 
-            action = APIAction(
-                method=str(fixed.get("method", "GET")),
-                url=str(fixed.get("url", obs.broken_request.get("url", "/mock_api/users"))),
-                headers=dict(fixed.get("headers") or {}),
-                body=fixed.get("body") or {},
-                query_params=dict(fixed.get("query_params") or {}),
-            )
+            action = {
+                "method": str(fixed.get("method", "GET")),
+                "url": str(fixed.get("url", "/mock_api/users")),
+                "headers": dict(fixed.get("headers") or {}),
+                "body": fixed.get("body") or None,
+                "query_params": dict(fixed.get("query_params") or {}),
+            }
 
-            action_str = f"{action.method}:{action.url}"
-            result = await env.step(action)
-            reward = result.reward or 0.0
-            done = result.done
-            obs = result.observation
+            action_str = f"{action['method']}:{action['url']}"
+            result = await env_step(client, action)
+
+            reward = float(result.get("reward", 0.0))
+            done = bool(result.get("done", False))
+            obs = result.get("observation", result)
 
             rewards.append(reward)
             steps_taken = step
@@ -130,6 +148,7 @@ async def run_task(env, task_id):
 
     except Exception as e:
         print(f"[DEBUG] Task {task_id} error: {e}", flush=True)
+        log_step(step=steps_taken, action="error", reward=0.0, done=True, error=str(e))
 
     finally:
         log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
@@ -138,9 +157,17 @@ async def run_task(env, task_id):
 
 
 async def main():
-    async with APIDebugEnv(base_url=ENV_URL) as env:
-        for task_id in ["easy", "medium", "hard", "expert"]:
-            await run_task(env, task_id)
+    async with httpx.AsyncClient(base_url=ENV_URL, timeout=30.0) as client:
+        # Verify environment is reachable
+        try:
+            health = await client.get("/health")
+            health.raise_for_status()
+        except Exception as e:
+            print(f"[DEBUG] Environment not reachable at {ENV_URL}: {e}", flush=True)
+            raise
+
+        for task_id in ["easy", "medium", "hard"]:
+            await run_task(client, task_id)
 
 
 if __name__ == "__main__":
