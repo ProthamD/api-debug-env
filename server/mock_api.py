@@ -10,6 +10,13 @@ _issued_tokens = set()
 _request_log = {}
 _items_db = {}
 
+DYNAMIC_CONFIG = {
+    "demo_token": "demo_token_123",
+    "client_id": "abc",
+    "client_secret": "xyz",
+    "dynamic_item_field": "name"
+}
+
 LOG_PAGES = {
     None: {"items": list(range(10)), "next_cursor": "cur_abc", "has_more": True},
     "cur_abc": {"items": list(range(10, 20)), "next_cursor": "cur_def", "has_more": True},
@@ -17,10 +24,12 @@ LOG_PAGES = {
 }
 
 @router.post("/_admin/reset")
-async def admin_reset():
+async def admin_reset(config: Optional[dict] = None):
     _issued_tokens.clear()
     _request_log.clear()
     _items_db.clear()
+    if config:
+        DYNAMIC_CONFIG.update(config)
     return {"status": "reset_successful"}
 
 
@@ -30,7 +39,7 @@ class TokenRequest(BaseModel):
 
 @router.post("/auth/token")
 async def get_token(body: TokenRequest):
-    if body.client_id == "abc" and body.client_secret == "xyz":
+    if body.client_id == DYNAMIC_CONFIG["client_id"] and body.client_secret == DYNAMIC_CONFIG["client_secret"]:
         token = f"tok_{int(time.time())}"
         _issued_tokens.add(token)
         return {"access_token": token, "expires_in": 60}
@@ -39,11 +48,12 @@ async def get_token(body: TokenRequest):
 
 @router.get("/users")
 async def get_users(authorization: Optional[str] = Header(default=None)):
+    dt = DYNAMIC_CONFIG["demo_token"]
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authorization header missing or malformed. Expected format: Bearer <token>. Use 'demo_token_123' for testing.")
+        raise HTTPException(status_code=401, detail=f"Authorization header missing or malformed. Expected format: Bearer <token>. Use '{dt}' for testing.")
     token = authorization.split(" ")[1]
-    if token not in _issued_tokens and token != "demo_token_123":
-        raise HTTPException(status_code=401, detail="Invalid token. Try 'demo_token_123'.")
+    if token not in _issued_tokens and token != dt:
+        raise HTTPException(status_code=401, detail=f"Invalid token. Try '{dt}'.")
     return {"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}
 
 
@@ -53,11 +63,12 @@ async def create_item(request: Request):
     if "application/json" not in ct:
         raise HTTPException(status_code=415, detail="Content-Type must be application/json")
     body = await request.json()
-    if "name" not in body:
-        raise HTTPException(status_code=422, detail=[{"loc": ["body", "name"], "msg": "field required"}])
+    field = DYNAMIC_CONFIG.get("dynamic_item_field", "name")
+    if field not in body:
+        raise HTTPException(status_code=422, detail=[{"loc": ["body", field], "msg": "field required"}])
     item_id = str(uuid.uuid4())
-    _items_db[item_id] = body["name"]
-    return {"item_id": item_id, "name": body["name"], "created": True}
+    _items_db[item_id] = body[field]
+    return {"item_id": item_id, "name": body[field], "created": True}
 
 @router.delete("/items/{item_id}")
 async def delete_item(item_id: str):

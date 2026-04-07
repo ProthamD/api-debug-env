@@ -1,7 +1,7 @@
 EASY_TASKS = [
     {
         "id": "easy_auth",
-        "description": "Access the protected resource at GET /mock_api/users to get a 200 OK. The current request is failing because the Authorization header is missing. Add 'Authorization: Bearer demo_token_123' to the headers.",
+        "description": "Access the protected resource at GET /mock_api/users to get a 200 OK. The current request is failing because the Authorization header is missing. Add 'Authorization: Bearer {demo_token}' to the headers.",
         "broken_request": {
             "method": "GET",
             "url": "/mock_api/users",

@@ -286,7 +286,7 @@ async def main() -> None:
             )
             # Do NOT return — we must still run tasks to emit required log lines
 
-        for task_id in ["easy", "medium", "hard"]:
+        for task_id in ["easy", "medium", "hard", "expert", "auto"]:
             await run_task(client, task_id)
 
 

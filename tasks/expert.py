@@ -15,16 +15,19 @@ EXPERT_TASKS = [
     },
     {
         "id": "expert_stateful_chain",
-        "description": "First, create an item with name 'temporary_item' via POST /mock_api/items to get an auto-generated item_id. Then, safely clean it up by sending a DELETE request to /mock_api/items/{item_id}. The current request is a placeholder.",
+        "description": "First, create an item with field '{dynamic_item_field}' set to 'temporary_item' via POST /mock_api/items. Then, safely clean it up by sending a DELETE request to /mock_api/items/{{item_id}}. The current request is a placeholder.",
         "broken_request": {
             "method": "POST",
             "url": "/mock_api/items",
             "headers": {"Content-Type": "application/json"},
-            "body": {"name": "temporary_item"},
+            "body": {"{dynamic_item_field}": "temporary_item"},
             "query_params": {},
         },
-        "expected_status": 200,
-        "expected_schema": {"status": "", "item_id": ""},
+        "expected_status": [200, 200],
+        "expected_schema": [
+            {"item_id": "", "{dynamic_item_field}": "", "created": True},
+            {"status": "", "item_id": ""}
+        ],
         "max_steps": 10,
     },
 ]

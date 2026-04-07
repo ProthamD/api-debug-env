@@ -31,9 +31,13 @@ class APIObservation(Observation):
     attempt: int = Field(default=0)
     reward: float = Field(default=0.0)
     done: bool = Field(default=False)
+    current_step_index: int = Field(default=0)
 
 
 class APIState(State):
     task_id: str = Field(default="easy")
     max_steps: int = Field(default=10)
     solved: bool = Field(default=False)
+    current_step_index: int = Field(default=0)
+    visited_endpoints: set = Field(default_factory=set)
+    curriculum_level: int = Field(default=0)

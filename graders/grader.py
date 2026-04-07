@@ -14,12 +14,13 @@ class APIGrader:
         # Correct status always scores at least 0.25; attempt bonus tapers reward slightly
         base_score = max(0.25, schema_score)
         attempt_bonus = max(0.0, 1.0 - (attempt / max_steps) * 0.15)
-        return round(min(1.0, max(0.0, base_score * attempt_bonus)), 4)
+        raw_score = base_score * attempt_bonus
+        return round(min(0.999, max(0.001, raw_score)), 4)
 
     def _partial(self, status):
         # Partial credit for wrong-status responses — signals progress toward the solution
         mapping = {
-            0:   0.0,   # connection error / no response
+            0:   0.001,   # connection error / no response
             401: 0.05,  # reached auth wall
             403: 0.05,  # reached permission wall
             404: 0.05,  # wrong endpoint
@@ -33,8 +34,17 @@ class APIGrader:
     def _schema_match(self, body, schema):
         if not schema:
             return 1.0
-        matched = sum(1 for k, v in schema.items() if k in body and type(body[k]) == type(v))
-        return matched / len(schema)
+            
+        schemas = schema if isinstance(schema, list) else [schema]
+        best_match = 0.0
+        
+        for s in schemas:
+            matched = sum(1 for k, v in s.items() if k in body and type(body[k]) == type(v))
+            score = matched / len(s) if len(s) > 0 else 1.0
+            if score > best_match:
+                best_match = score
+                
+        return best_match
 
     def get_feedback(self, status, expected_status):
         if status == expected_status:

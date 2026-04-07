@@ -3,7 +3,7 @@ HARD_TASKS = [
         "id": "hard_token_exchange",
         "description": (
             "The protected endpoint needs a fresh token. "
-            "Step 1: POST to /mock_api/auth/token with JSON body {\"client_id\": \"abc\", \"client_secret\": \"xyz\"} "
+            "Step 1: POST to /mock_api/auth/token with JSON body {{\"client_id\": \"{client_id}\", \"client_secret\": \"{client_secret}\"}} "
             "to get an access_token from the response. "
             "Step 2: Use that token as Authorization: Bearer <token> to GET /mock_api/protected. "
             "The token in the broken request is expired and will return 401."
