@@ -29,11 +29,12 @@ Every step produces a real HTTP call. The grader is fully deterministic: no LLM,
 |---|---|
 | **Framework** | OpenEnv (openenv-core 0.2.3) |
 | **Tasks** | 4 difficulty levels — 12 tasks total |
-| **Max Steps per Episode** | Dynamic (5 for Easy/Medium, 10 for Hard/Expert) |
-| **Reward Range** | 0.0 – 1.0 |
-| **Grader** | Fully deterministic (no LLM), robust to negative reward hacking |
+| **Max Steps per Episode** | Dynamic (10 by default) |
+| **Reward Range** | 0.001 – 0.999 (Strictly bounded) |
+| **Curriculum** | Supports automatic difficulty progression (`task_id: "auto"`) with exploration bonuses |
+| **Grader** | Fully deterministic (no LLM), robust to negative reward hacking. Supports multi-step stateful evaluation. |
 | **Mock API** | Internal FastAPI router, same container |
-| **State Reset** | Secure `/_admin/reset` endpoint guarantees strict episode isolation |
+| **State Reset** | Secure `/_admin/reset` injects completely dynamic schemas, tokens, and routes per episode! |
 | **Port** | 7860 (HF Spaces) |
 
 ---
@@ -119,21 +120,32 @@ Advanced RL environment forcing pure systematic exploration and state tracking.
 ## Reward Function
 
 ```
-reward = schema_match_score × attempt_bonus
+base_score = schema_match_score
 attempt_bonus = max(0.0, 1.0 − (attempt / max_steps) × 0.15)
+exploration_bonus = 0.05 per successfully reached novel endpoint
+
+reward = round(min(0.999, max(0.001, base_score × attempt_bonus + exploration_bonus)), 4)
 ```
 
 Agents are rewarded more for solving tasks in fewer steps. Partial credit is given at every step:
 
 | HTTP Status Received | Partial Reward | Meaning |
 |---|---|---|
-| 0 | 0.00 | Request never sent / connection error |
-| 401 / 403 / 404 | 0.05 | Hit the endpoint, auth failed |
-| 405 / 415 | 0.10 | Auth ok, wrong method or content-type |
-| 422 | 0.15 | Auth ok, body validation failed |
-| 429 | 0.20 | Hit endpoint, needs rate limit handling |
-| 200 (schema mismatch) | 0.25 | Right status, wrong response structure |
-| 200 (schema match) | 0.85–1.00 | Correct — higher reward for fewer attempts |
+| 0 | 0.001 | Request never sent / connection error |
+| 401 / 403 / 404 | ~0.05 | Hit the endpoint, auth failed |
+| 405 / 415 | ~0.10 | Auth ok, wrong method or content-type |
+| 422 | ~0.15 | Auth ok, body validation failed |
+| 429 | ~0.20 | Hit endpoint, needs rate limit handling |
+| 200 (schema mismatch) | ~0.25 | Right status, wrong response structure |
+| 200 (schema match) | 0.85–0.999 | Correct — higher reward for fewer attempts |
+
+---
+
+## 🚀 Advanced Environment Capabilities
+
+* **Dynamic Data Generation**: To destroy brute-force LLM memorization, the `/_admin/reset` logic generates random `uuid`-based API tokens and randomly shifts required JSON key structures (e.g. `body["name"]` vs `body["dynamic_item_field"]`) at the start of every episode.
+* **Exploration Bonus & Curriculum**: Agents receive a steady $+0.05$ reward for investigating new HTTP routes successfully. By specifying `task_id="auto"`, the RL environment tracks cross-episode metrics, automatically promoting the model's difficulty curriculum without external scaffolding!
+* **Multi-Step Array Grading**: The deterministic grader processes tasks over multi-step state arrays. Tasks like `expert_stateful_chain` require sequenced POST & DELETE combos cleanly scored progressively.
 
 ---
 
