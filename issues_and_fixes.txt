@@ -1,0 +1,32 @@
+API DEBUG ENV — REMAINING ISSUES & FIXES
+==========================================
+
+1. server/Dockerfile port still 8000
+   Fix: Change EXPOSE 8000 → EXPOSE 7860, healthcheck URL to localhost:7860, and CMD port to 7860.
+
+2. MOCK_BASE hardcoded in api_debug_environment.py
+   Fix: Replace `MOCK_BASE = "http://localhost:7860"` with `MOCK_BASE = os.getenv("MOCK_BASE_URL", "http://localhost:7860")` and add `import os` at top.
+
+3. resp_body not capped in api_debug_environment.py
+   Fix: Add `MAX_RESPONSE_BODY_LENGTH = 2000` at top and change `resp_body = resp.text` to `resp_body = resp.text[:MAX_RESPONSE_BODY_LENGTH]`.
+
+4. APIState.visited_endpoints type will break Pydantic v2
+   Fix: In models.py add `from typing import Set` and change `visited_endpoints: set` to `visited_endpoints: Set[str]`.
+
+5. expert_stateful_chain body has literal placeholder key "{dynamic_item_field}"
+   Fix: In tasks/expert.py change the broken_request body from `{"{dynamic_item_field}": "temporary_item"}` to `{"name": "temporary_item"}`. The dynamic field feature doesn't format body keys, only description strings.
+
+6. SYSTEM_PROMPT in inference.py blocks GET /openapi.json for expert discovery task
+   Fix: Change the rule `url must start with /mock_api/` to `url must start with / (e.g. /mock_api/... or /openapi.json for discovery tasks)`.
+
+7. No tests in submission
+   Fix: Add a tests/ directory with at minimum test_environment.py covering grader unit tests, task registry validation, and a mocked episode lifecycle. Run with pytest tests/ -v.
+
+8. _schema_match list-handling code in grader.py is dead/unreachable
+   Fix: Remove the `schemas = schema if isinstance(schema, list) else [schema]` block — the environment already passes a single dict (target_schema) at the call site. The dead code adds confusion without benefit.
+
+9. inference.py SYSTEM_PROMPT temperature note — minor
+   Fix: Already set to 0.0 (deterministic), good. No change needed.
+
+10. hard_token_exchange description uses {client_id}/{client_secret} placeholders
+    These are formatted correctly in reset() so this works. No fix needed — just confirming it's intentional.

@@ -8,6 +8,7 @@ except ImportError:
     except ImportError:
         from openenv.core.env_server import Action, Observation, State
 
+from typing import Set
 from pydantic import Field
 
 
@@ -39,5 +40,5 @@ class APIState(State):
     max_steps: int = Field(default=10)
     solved: bool = Field(default=False)
     current_step_index: int = Field(default=0)
-    visited_endpoints: set = Field(default_factory=set)
+    visited_endpoints: Set[str] = Field(default_factory=set)
     curriculum_level: int = Field(default=0)

@@ -1,4 +1,10 @@
-from openenv.core.client import EnvClient
+try:
+    from openenv.core.client import EnvClient
+except ImportError:
+    try:
+        from openenv.core.env_client import EnvClient
+    except ImportError:
+        from openenv.core import EnvClient
 from models import APIAction, APIObservation, APIState
 
 

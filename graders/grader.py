@@ -34,17 +34,8 @@ class APIGrader:
     def _schema_match(self, body, schema):
         if not schema:
             return 1.0
-            
-        schemas = schema if isinstance(schema, list) else [schema]
-        best_match = 0.0
-        
-        for s in schemas:
-            matched = sum(1 for k, v in s.items() if k in body and type(body[k]) == type(v))
-            score = matched / len(s) if len(s) > 0 else 1.0
-            if score > best_match:
-                best_match = score
-                
-        return best_match
+        matched = sum(1 for k, v in schema.items() if k in body and type(body[k]) == type(v))
+        return matched / len(schema) if len(schema) > 0 else 1.0
 
     def get_feedback(self, status, expected_status):
         if status == expected_status:

@@ -11,6 +11,7 @@ EASY_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"users": []},
+        "max_steps": 10,
     },
     {
         "id": "easy_content_type",
@@ -24,6 +25,7 @@ EASY_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"item_id": "", "name": "", "created": True},
+        "max_steps": 10,
     },
     {
         "id": "easy_query_param",
@@ -37,5 +39,6 @@ EASY_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"results": [], "total": 0},
+        "max_steps": 10,
     },
 ]

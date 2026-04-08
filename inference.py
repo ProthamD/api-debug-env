@@ -47,7 +47,7 @@ Respond ONLY in valid JSON with exactly these fields:
 }
 Rules:
 - method must be uppercase (GET, POST, DELETE, etc.)
-- url must start with /mock_api/
+- url must start with / (e.g. /mock_api/... for standard endpoints, or /openapi.json for discovery tasks)
 - body must be null for GET/DELETE requests
 - always include Content-Type: application/json when body is not null
 - do not add any text outside the JSON
@@ -64,7 +64,7 @@ def log_step(step: int, action: str, reward: float, done: bool,
     error_val = error if error else "null"
     done_val  = str(done).lower()
     print(
-        f"[STEP] step={step} action={action} reward={reward:.2f}"
+        f"[STEP] step={step} action={action} reward={reward:.3f}"
         f" done={done_val} error={error_val}",
         flush=True,
     )
@@ -72,7 +72,7 @@ def log_step(step: int, action: str, reward: float, done: bool,
 
 def log_end(success: bool, steps: int, score: float,
             rewards: List[float]) -> None:
-    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    rewards_str = ",".join(f"{r:.3f}" for r in rewards)
     print(
         f"[END] success={str(success).lower()} steps={steps}"
         f" score={score:.3f} rewards={rewards_str}",
@@ -222,12 +222,12 @@ async def run_task(client: httpx.AsyncClient, task_id: str) -> float:
             # ── Step ──────────────────────────────────────────────────────────
             try:
                 result = await env_step(client, action)
-                reward = float(result.get("reward", 0.0))
+                reward = float(result.get("reward", 0.001))
                 done   = bool(result.get("done", False))
                 obs    = result.get("observation", result)
                 error_str: Optional[str] = None
             except RuntimeError as exc:
-                reward    = 0.0
+                reward    = 0.001
                 done      = True          # abort episode on env error
                 error_str = str(exc)[:120]
 
@@ -240,7 +240,7 @@ async def run_task(client: httpx.AsyncClient, task_id: str) -> float:
             history.append(
                 f"step={step} action={action_str} "
                 f"status={obs.get('last_status_code', '?')} "
-                f"reward={reward:.2f}"
+                f"reward={reward:.3f}"
             )
 
             if done:

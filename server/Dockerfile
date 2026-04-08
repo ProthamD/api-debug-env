@@ -14,9 +14,9 @@ RUN pip install --no-cache-dir -e .
 ENV PYTHONPATH=/app
 
 USER envuser
-EXPOSE 8000
+EXPOSE 7860
 
 HEALTHCHECK --interval=20s --timeout=8s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:7860/health || exit 1
 
-CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "1"]

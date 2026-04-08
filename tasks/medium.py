@@ -11,6 +11,7 @@ MEDIUM_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"order_id": 0, "status": ""},
+        "max_steps": 10,
     },
     {
         "id": "medium_type_mismatch",
@@ -24,6 +25,7 @@ MEDIUM_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"order_id": 0, "product_id": 0},
+        "max_steps": 10,
     },
     {
         "id": "medium_nested_field",
@@ -37,5 +39,6 @@ MEDIUM_TASKS = [
         },
         "expected_status": 200,
         "expected_schema": {"name": "", "address": {}, "updated": True},
+        "max_steps": 10,
     },
 ]

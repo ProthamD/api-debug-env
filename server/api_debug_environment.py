@@ -1,3 +1,4 @@
+import os
 import random
 import httpx
 
@@ -11,7 +12,8 @@ from tasks.registry import TASK_REGISTRY
 from graders.grader import APIGrader
 
 GRADER = APIGrader()
-MOCK_BASE = "http://localhost:7860"
+MOCK_BASE = os.getenv("MOCK_BASE_URL", "http://localhost:7860")
+MAX_RESPONSE_BODY_LENGTH = 2000
 
 
 class APIDebugEnvironment(Environment):
@@ -104,7 +106,7 @@ class APIDebugEnvironment(Environment):
                 )
             status = resp.status_code
             resp_headers = dict(resp.headers)
-            resp_body = resp.text
+            resp_body = resp.text[:MAX_RESPONSE_BODY_LENGTH]
         except Exception as e:
             status = 0
             resp_headers = {}
