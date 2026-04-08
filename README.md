@@ -262,7 +262,10 @@ api_debug_env/
 │   └── registry.py           ← TASK_REGISTRY dict
 ├── graders/
 │   └── grader.py             ← Deterministic reward logic
-└── server/
+├── tests/                    ← New! Unit tests for environment & grader
+│   ├── __init__.py
+│   └── test_environment.py
+├── server/
     ├── app.py                ← FastAPI app with create_app()
     ├── api_debug_environment.py  ← Environment logic
     ├── mock_api.py           ← Internal mock REST API router
@@ -298,6 +301,17 @@ curl -X POST http://localhost:7860/reset \
 
 ---
 
+## 🧪 Testing
+
+The environment includes a comprehensive test suite covering the grader, task registry, and episode lifecycle.
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+```
+
+---
+
 ## Environment Variables
 
 | Variable | Required | Description |
@@ -306,6 +320,7 @@ curl -X POST http://localhost:7860/reset \
 | `MODEL_NAME` | Yes | Model identifier e.g. `mistralai/Mistral-7B-Instruct-v0.3` |
 | `HF_TOKEN` | Yes | HuggingFace token with inference access |
 | `ENV_URL` | No | Override environment URL (default: localhost) |
+| `MOCK_BASE_URL` | No | Internal URL for the Mock API (default: http://localhost:7860) |
 
 ---
 
